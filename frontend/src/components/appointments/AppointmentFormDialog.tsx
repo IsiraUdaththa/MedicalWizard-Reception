@@ -1,0 +1,1 @@
+export { AppointmentFormDrawer as AppointmentFormDialog } from "./AppointmentFormDrawer";
