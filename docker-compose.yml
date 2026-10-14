@@ -1,6 +1,7 @@
 services:
   db:
-    image: postgres:17
+    image: postgres:17-alpine
+    restart: always
     environment:
       POSTGRES_DB: reception
       POSTGRES_USER: app
@@ -10,10 +11,24 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d appointments"]
+      test: ["CMD-SHELL", "pg_isready -U app -d reception"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: medical-wizard-reception:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__Appointments=Host=db;Port=5432;Database=reception;Username=app;Password=dev_only_password
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
