@@ -4,6 +4,7 @@ import { LoaderCircle, Plus, Stethoscope, X } from "lucide-react";
 
 import { createDoctor } from "@/lib/api";
 import type { Doctor } from "@/types/appointment";
+import { useToast } from "@/context/ToastContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -36,6 +37,7 @@ function AddDoctorDialogContent({
   onDoctorCreated,
 }: AddDoctorDialogContentProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [specialization, setSpecialization] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -68,10 +70,16 @@ function AddDoctorDialogContent({
         queryKey: ["doctors"],
       });
       onClose();
+      toast.success(
+        `${createdDoctor.name} added to the staff roster.`,
+        "Doctor Added",
+      );
       onDoctorCreated?.(createdDoctor);
     },
     onError: (err: Error) => {
-      setError(err.message || "Failed to create doctor.");
+      const msg = err.message || "Failed to create doctor.";
+      setError(msg);
+      toast.error(msg, "Doctor Creation Failed");
     },
   });
 

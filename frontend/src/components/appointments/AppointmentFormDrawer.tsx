@@ -21,6 +21,7 @@ import type { AppointmentInput } from "@/lib/api";
 import type { Appointment } from "@/types/appointment";
 
 import { AddDoctorModal } from "@/components/doctors/AddDoctorModal";
+import { useToast } from "@/context/ToastContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -151,6 +152,7 @@ function AppointmentFormContent({
 }: AppointmentFormContentProps) {
   const isEditing = Boolean(appointment);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const initialDateTime = useMemo(
     () => extractDateAndTimeString(appointment?.appointmentDateTime),
@@ -240,12 +242,25 @@ function AppointmentFormContent({
         queryKey: ["appointments"],
       });
       onClose();
-      if (!isEditing && result && onAppointmentCreated) {
-        onAppointmentCreated(result);
+      if (isEditing) {
+        toast.info(
+          `Appointment for ${patientName.trim()} has been updated.`,
+          "Appointment Updated",
+        );
+      } else {
+        toast.success(
+          `Appointment registered for ${patientName.trim()}.`,
+          "Appointment Created",
+        );
+        if (result && onAppointmentCreated) {
+          onAppointmentCreated(result);
+        }
       }
     },
     onError: (err: Error) => {
-      setValidationError(err.message || "Failed to save appointment.");
+      const msg = err.message || "Failed to save appointment.";
+      setValidationError(msg);
+      toast.error(msg, isEditing ? "Update Failed" : "Booking Failed");
     },
   });
 

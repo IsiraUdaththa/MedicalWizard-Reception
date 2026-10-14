@@ -48,6 +48,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AddDoctorModal } from "./components/doctors/AddDoctorModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/context/ToastContext";
 
 const initialFilters: AppointmentFilters = {
   page: 1,
@@ -128,9 +130,12 @@ export default function App() {
 
   const queryClient = useQueryClient();
 
+  const { toast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [doctorModalOpen, setDoctorModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
+  const [appointmentToDelete, setAppointmentToDelete] =
     useState<Appointment | null>(null);
 
   const deleteMutation = useMutation({
@@ -139,6 +144,19 @@ export default function App() {
       await queryClient.invalidateQueries({
         queryKey: ["appointments"],
       });
+      const name = appointmentToDelete?.patientName || "Patient";
+      toast.success(
+        `Appointment for ${name} has been cancelled and removed.`,
+        "Appointment Deleted",
+      );
+      setAppointmentToDelete(null);
+    },
+    onError: (err: Error) => {
+      toast.error(
+        err.message || "Failed to delete appointment.",
+        "Deletion Error",
+      );
+      setAppointmentToDelete(null);
     },
   });
 
@@ -152,14 +170,8 @@ export default function App() {
     setFormOpen(true);
   }
 
-  async function handleDelete(appointment: Appointment) {
-    const confirmed = window.confirm(
-      `Delete the appointment for ${appointment.patientName}?`,
-    );
-
-    if (confirmed) {
-      deleteMutation.mutate(appointment.id);
-    }
+  function handleDelete(appointment: Appointment) {
+    setAppointmentToDelete(appointment);
   }
 
   const appointmentsQuery = useQuery({
@@ -231,6 +243,7 @@ export default function App() {
   function handleReset() {
     setSelectedDate(null);
     setFilters(initialFilters);
+    toast.info("All search and filter criteria have been reset.", "Filters Reset");
   }
 
   function toggleSort(sortBy: string) {
@@ -701,6 +714,23 @@ export default function App() {
       <AddDoctorModal
         open={doctorModalOpen}
         onOpenChange={setDoctorModalOpen}
+      />
+
+      {/* Modern Confirmation Dialog */}
+      <ConfirmDialog
+        open={Boolean(appointmentToDelete)}
+        title="Delete Appointment"
+        message={`Are you sure you want to permanently delete the booking for ${appointmentToDelete?.patientName}? This action cannot be undone.`}
+        confirmText="Delete Booking"
+        cancelText="Keep Booking"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (appointmentToDelete) {
+            deleteMutation.mutate(appointmentToDelete.id);
+          }
+        }}
+        onCancel={() => setAppointmentToDelete(null)}
       />
     </div>
   );
